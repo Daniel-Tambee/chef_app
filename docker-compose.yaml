@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=testdb
+    ports:
+      - "45432:5432"  # PostgreSQL client port
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - directus-net
+
+  directus:
+    image: directus/directus:latest
+    container_name: directus
+    environment:
+      - DB_CLIENT=pg
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=testdb        # Correct environment variable name
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=adminpassword
+      - ADMIN_ROLE=admin
+    ports:
+      - "8055:8055"  # Directus admin panel and API
+    depends_on:
+      - postgres
+    networks:
+      - directus-net
+
+volumes:
+  postgres-data:
+
+networks:
+  directus-net:
+    driver: bridge

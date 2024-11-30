@@ -1,0 +1,149 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  CHEF
+  ADMIN
+}
+
+enum OrderStatus {
+  PLACED
+  IN_PREPARATION
+  DELIVERED
+}
+
+model User {
+  id        String   @id @default(uuid()) @map("_id")
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  chefProfile   ChefProfile?
+  orders        Order[]      @relation("CustomerOrders")
+  customerChats Chat[]       @relation("CustomerChats")
+
+  reviews Review[]
+  admins  Admin[]
+}
+
+model ChefProfile {
+  id        String   @id @default(uuid()) @map("_id")
+  bio       String?
+  location  String
+  contact   String
+  rating    Float    @default(0)
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user     User          @relation(fields: [userId], references: [id])
+  cuisines ChefCuisine[]
+  dishes   Dish[]
+  orders   Order[]       @relation("ChefOrders")
+  reviews  Review[]
+  chats    Chat[]        @relation("ChefChats")
+}
+
+model Cuisine {
+  id      String @id @default(uuid()) @map("_id")
+  name    String
+  country String
+
+  // Relationships
+  chefCuisines ChefCuisine[]
+  dishes       Dish[]
+
+  @@unique([name, country])
+}
+
+model ChefCuisine {
+  id            String @id @default(uuid()) @map("_id")
+  chefProfileId String
+  cuisineId     String
+
+  // Relationships
+  chefProfile ChefProfile @relation(fields: [chefProfileId], references: [id])
+  cuisine     Cuisine     @relation(fields: [cuisineId], references: [id])
+
+  @@unique([chefProfileId, cuisineId])
+}
+
+model Dish {
+  id            String   @id @default(uuid()) @map("_id")
+  name          String
+  description   String
+  price         Float
+  cuisineId     String
+  chefProfileId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  cuisine     Cuisine     @relation(fields: [cuisineId], references: [id])
+  chefProfile ChefProfile @relation(fields: [chefProfileId], references: [id])
+  orders      Order[]
+}
+
+model Order {
+  id             String      @id @default(uuid()) @map("_id")
+  status         OrderStatus @default(PLACED)
+  specialRequest String?
+  totalAmount    Float
+  customerId     String
+  chefProfileId  String
+  dishId         String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relationships
+  customer    User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  chefProfile ChefProfile @relation("ChefOrders", fields: [chefProfileId], references: [id])
+  dish        Dish        @relation(fields: [dishId], references: [id])
+}
+
+model Review {
+  id            String   @id @default(uuid()) @map("_id")
+  rating        Int
+  comment       String?
+  customerId    String
+  chefProfileId String
+  createdAt     DateTime @default(now())
+
+  // Relationships
+  customer    User        @relation(fields: [customerId], references: [id])
+  chefProfile ChefProfile @relation(fields: [chefProfileId], references: [id])
+}
+
+model Chat {
+  id            String   @id @default(uuid()) @map("_id")
+  message       String
+  sentAt        DateTime @default(now())
+  customerId    String
+  chefProfileId String
+
+  // Relationships
+  customer    User        @relation("CustomerChats", fields: [customerId], references: [id])
+  chefProfile ChefProfile @relation("ChefChats", fields: [chefProfileId], references: [id])
+}
+
+model Admin {
+  id        String   @id @default(uuid()) @map("_id")
+  userId    String   @unique
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
